@@ -94,7 +94,7 @@ class DAQ_0DViewer_Lockin_DSP7270(DAQ_Viewer_base):
         self.ini_detector_init(old_controller=controller,
                                new_controller=Ametek7270(self.settings['address']))
 
-        info = self.controller.identification()
+        info = self.controller.id
         self.settings.child('id').setValue(info)
         initialized = True
         return info, initialized
@@ -116,7 +116,7 @@ class DAQ_0DViewer_Lockin_DSP7270(DAQ_Viewer_base):
         """
         data = []
         for child in self.settings.child('channels').children():
-            labels = child.value()['selected']
+            labels = child.value()['selected'][:]
             subdata = [np.array([getattr(self.controller, label)]) for label in labels]
             data.append(DataFromPlugins(name=child.name(), data=subdata,
                                         labels=labels, dim='Data0D'))
