@@ -128,4 +128,4 @@ class DAQ_0DViewer_Lockin_DSP7270(DAQ_Viewer_base):
 
 
 if __name__ == '__main__':
-    main(__file__, init=True)
+    main(__file__, init=False)
