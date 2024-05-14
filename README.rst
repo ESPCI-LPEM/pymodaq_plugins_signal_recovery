@@ -53,3 +53,7 @@ Infos
 =====
 
 Based on the *pymeasure* package providing instruments base class among which the DSP7265 and DSP7270
+The Signal Recovery driver *SRUSBDRIVERSV4* of the lockin should be installed for the usb connection to be recognized
+by the VISA protocol.
+
+The USB communication odf the DSP7270 should be set to *NULL*
