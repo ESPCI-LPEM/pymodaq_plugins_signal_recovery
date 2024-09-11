@@ -24,13 +24,6 @@ Authors
 * Sebastien J. Weber  (sebastien.weber@cemes.fr)
 * Other author (myotheremail@xxx.org)
 
-.. if needed use this field
-
-    Contributors
-    ============
-
-    * First Contributor
-    * Other Contributors
 
 Instruments
 ===========
