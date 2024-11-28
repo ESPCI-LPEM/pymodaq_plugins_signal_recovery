@@ -7,7 +7,7 @@ from pymodaq.control_modules.move_utility_classes import (
     DAQ_Move_base,
     DataActuator,
     DataActuatorType,
-    comon_parameters_fun,
+    comon_parameters,
     main
 )
 from pymodaq.utils.daq_utils import ThreadCommand, getLineInfo
@@ -40,12 +40,20 @@ class DAQ_Move_Lockin_DSP7265(DAQ_Move_base):
     """
 
     _controller_units = 'Hz'
-    is_multiaxes = False
+    is_multiaxes = True
     _axis_names = ['OSC']
     _epsilon = 0.01
     data_actuator_type = DataActuatorType.DataActuator
 
     params = [
+        {'title': 'MultiAxes:', 'name': 'multiaxes', 'type': 'group', 'visible': is_multiaxes, 'children': [
+                     {'title': 'is Multiaxes:', 'name': 'ismultiaxes', 'type': 'bool', 'value': is_multiaxes,
+                      'default': False},
+                     {'title': 'Status:', 'name': 'multi_status', 'type': 'list', 'value': 'Master',
+                      'limits': ['Master', 'Slave']},
+                     {'title': 'Axis:', 'name': 'axis', 'type': 'list', 'limits': _axis_names},
+
+                 ]},
         {'title': 'Adapter', 'name': 'adapter', 'type': 'list', 'limits': list(ADAPTERS.keys())},
         {'title': 'VISA Address:', 'name': 'address', 'type': 'list', 'limits': VISA_RESOURCES},
         {'title': 'Info', 'name': 'info', 'type': 'str', 'value': '', 'readonly': True},
@@ -58,12 +66,10 @@ class DAQ_Move_Lockin_DSP7265(DAQ_Move_base):
         {'title': 'Full-scale sensitivity', 'name': 'sensitivity', 'type': 'list',
          'limits': list(build_dict_from_float_list(DSP7265.SENSITIVITIES, 'V'))},
         {'title': 'Voltage (V)', 'name': 'voltage', 'type': 'float', 'limits': [0, 5], 'value': 1e-6},
-        {'title': 'Gain (dB)', 'name': 'gain', 'type': 'list', 'limits': GAIN},
-    ] + comon_parameters_fun(is_multiaxes, axis_names=_axis_names, epsilon=_epsilon)
-
+        {'title': 'Gain (dB)', 'name': 'gain', 'type': 'list', 'limits': GAIN}
+    ] + comon_parameters()
     def ini_attributes(self):
-        self.controller = DSP7265
-        print(self.controller.imode)
+        self.controller: DSP7265 = None
 
     def get_actuator_value(self):
         """Get the current value from the hardware with scaling conversion.
@@ -160,18 +166,20 @@ class DAQ_Move_Lockin_DSP7265(DAQ_Move_base):
         """
         try:
             self.status.update(edict(info="", controller=None, initialized=False))
-            if self.is_master:
-                adapter = ADAPTERS[self.settings.child('adapter').value()](self.settings.child('address').value())
-                self.controller = DSP7265(adapter)
-            else:
+            if (self.settings.child('multiaxes', 'ismultiaxes').value()
+                and self.settings.child('multiaxes','multi_status').value() == "Slave"):
                 if controller is None:
                     raise Exception('No controller has been defined externally while this axe is a slave one')
                 else:
                     self.controller = controller
+               
+            else:
+                adapter = ADAPTERS[self.settings.child('adapter').value()](self.settings.child('address').value())
+                self.controller = DSP7265(adapter)
 
             self.status.info = self.controller.id
             self.settings.child('info').setValue(self.status.info)
-            self.status.controller = controller
+            self.status.controller = self.controller
             self.status.initialized = True
             return self.status
 
@@ -180,10 +188,6 @@ class DAQ_Move_Lockin_DSP7265(DAQ_Move_base):
             self.status.info = getLineInfo() + str(e)
             self.status.initialized = False
             return self.status
-
-        info = "Whatever info you want to log"
-        initialized = self.controller.a_method_or_atttribute_to_check_if_init()  # todo
-        return info, initialized
 
     def move_abs(self, f: DataActuator):
         """ Move the actuator to the absolute target defined by value
