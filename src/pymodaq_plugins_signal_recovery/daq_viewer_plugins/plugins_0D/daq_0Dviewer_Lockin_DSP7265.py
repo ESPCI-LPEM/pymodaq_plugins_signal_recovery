@@ -7,7 +7,6 @@ import pyvisa
 import numpy as np
 from easydict import EasyDict as edict
 
-from pymeasure.instruments.signalrecovery import DSP7265
 from pymeasure.adapters import VISAAdapter, PrologixAdapter
 
 from pymodaq.control_modules.viewer_utility_classes import (
@@ -22,13 +21,15 @@ from pymodaq.utils.daq_utils import ThreadCommand, getLineInfo
 from pyqtgraph.parametertree.Parameter import registerParameterType
 from pyqtgraph.parametertree.parameterTypes.basetypes import GroupParameter
 
+from hardware.dsp_7265_thread_safe import DSP7265ThreadSafe
+
 CHANNELS = ['x', 'y', 'mag', 'phase', 'adc1', 'adc2', 'adc3']
 rm = pyvisa.ResourceManager()
 VISA_RESOURCES = rm.list_resources()
 ADAPTERS = dict(VISA=VISAAdapter, Prologix=PrologixAdapter)
 
 for channel in CHANNELS:
-    assert hasattr(DSP7265, channel)
+    assert hasattr(DSP7265ThreadSafe, channel)
 
 
 class ChannelGroup(GroupParameter):
@@ -81,7 +82,7 @@ class DAQ_0DViewer_Lockin_DSP7265(DAQ_Viewer_base):
     ] + comon_parameters
 
     def ini_attributes(self) -> None:
-        self.controller: DSP7265 = None
+        self.controller: DSP7265ThreadSafe = None
 
     def commit_settings(self, param: Parameter) -> None:
         """Apply the consequences of a change of value in the detector settings
@@ -140,7 +141,7 @@ class DAQ_0DViewer_Lockin_DSP7265(DAQ_Viewer_base):
                 adapter = ADAPTERS[self.settings.child('adapter').value()](
                     self.settings.child('address').value()
                 )
-                self.controller = DSP7265(adapter)
+                self.controller = DSP7265ThreadSafe(adapter)
 
             self.status.info = self.controller.id
             self.status.controller = controller

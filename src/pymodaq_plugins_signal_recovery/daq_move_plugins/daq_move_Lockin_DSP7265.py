@@ -13,12 +13,13 @@ from pymodaq.control_modules.move_utility_classes import (
 from pymodaq.utils.daq_utils import ThreadCommand, getLineInfo
 from pymodaq.utils.parameter import Parameter
 
-from pymeasure.instruments.signalrecovery import DSP7265
 from pymeasure.adapters import VISAAdapter, PrologixAdapter
 
 from easydict import EasyDict as edict
 
 import pyvisa
+
+from hardware.dsp_7265_thread_safe import DSP7265ThreadSafe
 
 
 def build_dict_from_float_list(
@@ -36,7 +37,7 @@ ADAPTERS = dict(VISA=VISAAdapter, Prologix=PrologixAdapter)
 FET = {"Bipolar": 0, "FET": 1}
 SHIELD = {"Grounded": 0, "Floating": 1}
 COUPLING = {"AC": 0, "DC": 1}
-TIME_CONSTANTS = build_dict_from_float_list(DSP7265.TIME_CONSTANTS, "s")
+TIME_CONSTANTS = build_dict_from_float_list(DSP7265ThreadSafe.TIME_CONSTANTS, "s")
 GAIN = list(range(0, 100, 10))
 
 
@@ -70,9 +71,9 @@ class DAQ_Move_Lockin_DSP7265(DAQ_Move_base):
         {'title': 'Info', 'name': 'info', 'type': 'str', 'value': '',
          'readonly': True},
         {'title': 'Input mode', 'name': 'imode', 'type': 'list',
-         'limits': DSP7265.IMODES},
+         'limits': DSP7265ThreadSafe.IMODES},
         {'title': 'Reference', 'name': 'reference', 'type': 'list',
-         'limits': DSP7265.REFERENCES},
+         'limits': DSP7265ThreadSafe.REFERENCES},
         {'title': 'Voltage mode input device', 'name': 'fet', 'type': 'list',
          'limits': list(FET.keys())},
         {'title': 'Input connector shield', 'name': 'shield', 'type': 'list',
@@ -83,14 +84,14 @@ class DAQ_Move_Lockin_DSP7265(DAQ_Move_base):
          'type': 'list', 'limits': list(TIME_CONSTANTS.keys())},
         {'title': 'Full-scale sensitivity', 'name': 'sensitivity',
          'type': 'list', 'limits':
-         list(build_dict_from_float_list(DSP7265.SENSITIVITIES, 'V'))},
+         list(build_dict_from_float_list(DSP7265ThreadSafe.SENSITIVITIES, 'V'))},
         {'title': 'Voltage (V)', 'name': 'voltage', 'type': 'float',
          'limits': [0, 5], 'value': 1e-6},
         {'title': 'Gain (dB)', 'name': 'gain', 'type': 'list', 'limits': GAIN}
     ] + comon_parameters()
 
     def ini_attributes(self) -> None:
-        self.controller: DSP7265 = None
+        self.controller: DSP7265ThreadSafe = None
 
     def get_actuator_value(self) -> float:
         """Get the current value from the hardware with scaling conversion.
@@ -118,27 +119,27 @@ class DAQ_Move_Lockin_DSP7265(DAQ_Move_base):
         """
         if param.name() == "imode":
             self.controller.imode = param.value()
-            if param.value() == DSP7265.IMODES[0]:
+            if param.value() == DSP7265ThreadSafe.IMODES[0]:
                 self.settings.child('sensitivity').setLimits(
                     list(build_dict_from_float_list(
-                        [s * DSP7265.SEN_MULTIPLIER[0]
-                         for s in DSP7265.SENSITIVITIES],
+                        [s * DSP7265ThreadSafe.SEN_MULTIPLIER[0]
+                         for s in DSP7265ThreadSafe.SENSITIVITIES],
                         "V"
                     ).keys())
                 )
-            elif param.value() == DSP7265.IMODES[1]:
+            elif param.value() == DSP7265ThreadSafe.IMODES[1]:
                 self.settings.child('sensitivity').setLimits(
                     list(build_dict_from_float_list(
-                        [s * DSP7265.SEN_MULTIPLIER[1]
-                         for s in DSP7265.SENSITIVITIES],
+                        [s * DSP7265ThreadSafe.SEN_MULTIPLIER[1]
+                         for s in DSP7265ThreadSafe.SENSITIVITIES],
                         "A"
                     ).keys())
                 )
-            elif param.value() == DSP7265.IMODES[2]:
+            elif param.value() == DSP7265ThreadSafe.IMODES[2]:
                 self.settings.child('sensitivity').setLimits(
                     list(build_dict_from_float_list(
-                        [s * DSP7265.SEN_MULTIPLIER[2]
-                         for s in DSP7265.SENSITIVITIES],
+                        [s * DSP7265ThreadSafe.SEN_MULTIPLIER[2]
+                         for s in DSP7265ThreadSafe.SENSITIVITIES],
                         "A"
                     ).keys())
                 )
@@ -153,22 +154,22 @@ class DAQ_Move_Lockin_DSP7265(DAQ_Move_base):
         elif param.name() == "time_constant":
             self.controller.time_constant = TIME_CONSTANTS[param.value()]
         elif param.name() == "sensitivity":
-            if self.settings.child('imode').value() == DSP7265.IMODES[0]:
+            if self.settings.child('imode').value() == DSP7265ThreadSafe.IMODES[0]:
                 self.controller.sensitivity = build_dict_from_float_list(
-                    [s * DSP7265.SEN_MULTIPLIER[0]
-                     for s in DSP7265.SENSITIVITIES],
+                    [s * DSP7265ThreadSafe.SEN_MULTIPLIER[0]
+                     for s in DSP7265ThreadSafe.SENSITIVITIES],
                     "V"
                 )[self.settings.child('sensitivity').value()]
-            if self.settings.child('imode').value() == DSP7265.IMODES[1]:
+            if self.settings.child('imode').value() == DSP7265ThreadSafe.IMODES[1]:
                 self.controller.sensitivity = build_dict_from_float_list(
-                    [s * DSP7265.SEN_MULTIPLIER[1]
-                     for s in DSP7265.SENSITIVITIES],
+                    [s * DSP7265ThreadSafe.SEN_MULTIPLIER[1]
+                     for s in DSP7265ThreadSafe.SENSITIVITIES],
                     "A"
                 )[self.settings.child('sensitivity').value()]
-            if self.settings.child('imode').value() == DSP7265.IMODES[2]:
+            if self.settings.child('imode').value() == DSP7265ThreadSafe.IMODES[2]:
                 self.controller.sensitivity = build_dict_from_float_list(
-                    [s * DSP7265.SEN_MULTIPLIER[2]
-                     for s in DSP7265.SENSITIVITIES],
+                    [s * DSP7265ThreadSafe.SEN_MULTIPLIER[2]
+                     for s in DSP7265ThreadSafe.SENSITIVITIES],
                     "A"
                 )[self.settings.child('sensitivity').value()]
         elif param.name() == "voltage":
@@ -212,7 +213,7 @@ class DAQ_Move_Lockin_DSP7265(DAQ_Move_base):
                 adapter = ADAPTERS[self.settings.child('adapter').value()](
                     self.settings.child('address').value()
                 )
-                self.controller = DSP7265(adapter)
+                self.controller = DSP7265ThreadSafe(adapter)
 
             self.status.info = self.controller.id
             self.settings.child('info').setValue(self.status.info)
