@@ -3,9 +3,10 @@ Created the 27/11/2024
 
 @author: Louis Grandvaux
 """
+from typing import Tuple
+
 import pyvisa
 import numpy as np
-from easydict import EasyDict as edict
 
 from pymeasure.adapters import VISAAdapter, PrologixAdapter
 
@@ -15,7 +16,7 @@ from pymodaq.control_modules.viewer_utility_classes import (
     main
 )
 from pymodaq.utils.parameter import Parameter, utils
-from pymodaq.utils.data import DataFromPlugins
+from pymodaq.utils.data import DataFromPlugins, DataToExport
 from pymodaq.utils.daq_utils import ThreadCommand, getLineInfo
 
 from pyqtgraph.parametertree.Parameter import registerParameterType
@@ -106,9 +107,12 @@ class DAQ_0DViewer_Lockin_DSP7265(DAQ_Viewer_base):
                         dim='Data0D'
                     )
                 )
-            self.data_grabed_signal_temp.emit(data)
+            self.dte_signal_temp.emit(DataToExport(
+                name="lockindsp7265",
+                data=data
+            ))
 
-    def ini_detector(self, controller: object = None) -> edict:
+    def ini_detector(self, controller: object = None) -> Tuple[str, bool]:
         """Viewer communication initialization
 
         Parameters
@@ -126,35 +130,36 @@ class DAQ_0DViewer_Lockin_DSP7265(DAQ_Viewer_base):
         controller: object
             Controller of the daq_viewer
         """
+        self.ini_detector_init(slave_controller=controller)
+
+        if self.is_master:
+            adapter = ADAPTERS[self.settings.child('adapter').value()](
+                self.settings.child('address').value()
+            )
+            self.controller = DSP7265ThreadSafe(adapter)
+
+        self.dte_signal_temp.emit(
+            DataToExport(
+                name="lockindsp7265",
+                data=[
+                    DataFromPlugins(
+                        name="lockindsp7265",
+                        data=[np.array([0]), np.array([0])],
+                        dim="Data0D",
+                        labels=["x", "y"]
+                    )
+                ]
+            )
+        )
+
         try:
-            self.status.update(
-                edict(info="", controller=None, initialized=False)
-            )
-            if self.settings.child('controller_status').value() == "Slave":
-                if controller is None:
-                    raise Exception('No controller has been defined externally'
-                                    'while this axe is a slave one')
-                else:
-                    print(controller)
-                    self.controller = controller
-            else:
-                adapter = ADAPTERS[self.settings.child('adapter').value()](
-                    self.settings.child('address').value()
-                )
-                self.controller = DSP7265ThreadSafe(adapter)
+            info = self.controller.id
+            initialized = True
+        except:
+            info = ""
+            initialized = False
 
-            self.status.info = self.controller.id
-            self.status.controller = controller
-            self.status.initialized = True
-            return self.status
-
-        except Exception as e:
-            self.emit_status(
-                ThreadCommand('Update_Status', [getLineInfo() + str(e), 'log'])
-            )
-            self.status.info = getLineInfo() + str(e)
-            self.status.initialized = False
-            return self.status
+        return info, initialized
 
     def stop(self) -> None:
         return ""
@@ -180,7 +185,10 @@ class DAQ_0DViewer_Lockin_DSP7265(DAQ_Viewer_base):
                 labels=labels,
                 dim='Data0D'
             ))
-        self.data_grabed_signal.emit(data)
+        self.dte_signal.emit(DataToExport(
+            name="lockindsp7265",
+            data=data
+        ))
 
 
 if __name__ == '__main__':

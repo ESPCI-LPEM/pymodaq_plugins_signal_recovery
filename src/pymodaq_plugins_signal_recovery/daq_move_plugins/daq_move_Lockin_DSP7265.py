@@ -3,19 +3,19 @@ Created the 26/11/2024
 
 @author: Louis Grandvaux
 """
+from typing import Tuple
+
 from pymodaq.control_modules.move_utility_classes import (
     DAQ_Move_base,
     DataActuator,
     DataActuatorType,
-    comon_parameters,
+    comon_parameters_fun,
     main
 )
 from pymodaq.utils.daq_utils import ThreadCommand, getLineInfo
 from pymodaq.utils.parameter import Parameter
 
 from pymeasure.adapters import VISAAdapter, PrologixAdapter
-
-from easydict import EasyDict as edict
 
 import pyvisa
 
@@ -54,22 +54,10 @@ class DAQ_Move_Lockin_DSP7265(DAQ_Move_base):
     data_actuator_type = DataActuatorType.DataActuator
 
     params = [
-        {'title': 'MultiAxes:', 'name': 'multiaxes', 'type': 'group',
-         'visible': is_multiaxes, 'children': [
-             {'title': 'is Multiaxes:', 'name': 'ismultiaxes', 'type': 'bool',
-              'value': is_multiaxes, 'default': False},
-             {'title': 'Status:', 'name': 'multi_status', 'type': 'list',
-              'value': 'Master', 'limits': ['Master', 'Slave']},
-             {'title': 'Axis:', 'name': 'axis', 'type': 'list',
-              'limits': _axis_names},
-
-         ]},
         {'title': 'Adapter', 'name': 'adapter', 'type': 'list',
          'limits': list(ADAPTERS.keys())},
         {'title': 'VISA Address:', 'name': 'address', 'type': 'list',
          'limits': VISA_RESOURCES},
-        {'title': 'Info', 'name': 'info', 'type': 'str', 'value': '',
-         'readonly': True},
         {'title': 'Input mode', 'name': 'imode', 'type': 'list',
          'limits': DSP7265ThreadSafe.IMODES},
         {'title': 'Reference', 'name': 'reference', 'type': 'list',
@@ -88,7 +76,7 @@ class DAQ_Move_Lockin_DSP7265(DAQ_Move_base):
         {'title': 'Voltage (V)', 'name': 'voltage', 'type': 'float',
          'limits': [0, 5], 'value': 1e-6},
         {'title': 'Gain (dB)', 'name': 'gain', 'type': 'list', 'limits': GAIN}
-    ] + comon_parameters()
+    ] + comon_parameters_fun(is_multiaxes, axis_names=_axis_names, epsilon=_epsilon)
 
     def ini_attributes(self) -> None:
         self.controller: DSP7265ThreadSafe = None
@@ -179,7 +167,7 @@ class DAQ_Move_Lockin_DSP7265(DAQ_Move_base):
         else:
             pass
 
-    def ini_stage(self, controller: object = None) -> edict:
+    def ini_stage(self, controller: object = None) -> Tuple[str, bool]:
         """Actuator communication initialization
 
         Parameters
@@ -197,37 +185,22 @@ class DAQ_Move_Lockin_DSP7265(DAQ_Move_base):
         controller: object
             Controller of the daq_move
         """
+        self.ini_stage_init(slave_controller=controller)
+
+        if self.is_master:
+            adapter = ADAPTERS[self.settings.child('adapter').value()](
+                self.settings.child('address').value()
+            )
+            self.controller = DSP7265ThreadSafe(adapter)
+
         try:
-            self.status.update(
-                edict(info="", controller=None, initialized=False)
-            )
-            if (self.settings.child('multiaxes', 'ismultiaxes').value()
-                    and self.settings.child('multiaxes',
-                                            'multi_status').value() == "Slave"):
-                if controller is None:
-                    raise Exception('No controller has been defined externally'
-                                    'while this axe is a slave one')
-                else:
-                    self.controller = controller
-            else:
-                adapter = ADAPTERS[self.settings.child('adapter').value()](
-                    self.settings.child('address').value()
-                )
-                self.controller = DSP7265ThreadSafe(adapter)
+            info = self.controller.id
+            initialized = True
+        except:
+            info = ""
+            initialized = False
 
-            self.status.info = self.controller.id
-            self.settings.child('info').setValue(self.status.info)
-            self.status.controller = self.controller
-            self.status.initialized = True
-            return self.status
-
-        except Exception as e:
-            self.emit_status(
-                ThreadCommand('Update_Status', [getLineInfo() + str(e), 'log'])
-            )
-            self.status.info = getLineInfo() + str(e)
-            self.status.initialized = False
-            return self.status
+        return info, initialized
 
     def move_abs(self, f: DataActuator) -> None:
         """ Move the actuator to the absolute target defined by value
@@ -240,7 +213,7 @@ class DAQ_Move_Lockin_DSP7265(DAQ_Move_base):
         f = self.set_position_with_scaling(f)
         self.controller.frequency = f.value()
 
-        self.target_frequency = f
+        self.target_value = f
         self.current_value = self.target_value
 
     def move_rel(self, f: DataActuator) -> None:
