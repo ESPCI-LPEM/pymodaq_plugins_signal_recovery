@@ -9,7 +9,7 @@ logger = set_logger(get_module_name(__file__), add_to_console=False)
 
 class DSP7265ThreadSafe(DSP7265):
 
-    def query(self, **kwargs):
+    def read(self, **kwargs):
         try:
             lock.acquire()
             super().read(**kwargs)

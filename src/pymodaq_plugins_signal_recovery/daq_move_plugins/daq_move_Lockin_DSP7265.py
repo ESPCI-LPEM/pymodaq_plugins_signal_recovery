@@ -93,7 +93,7 @@ class DAQ_Move_Lockin_DSP7265(DAQ_Move_base):
     def ini_attributes(self) -> None:
         self.controller: DSP7265ThreadSafe = None
 
-    def get_actuator_value(self) -> float:
+    def get_actuator_value(self) -> DataActuator:
         """Get the current value from the hardware with scaling conversion.
 
         Returns
@@ -234,14 +234,14 @@ class DAQ_Move_Lockin_DSP7265(DAQ_Move_base):
 
         Parameters
         ----------
-        value: (float) value of the absolute target frequency
+        value: (float) value of the absolute target value
         """
         f = self.check_bound(f)
         f = self.set_position_with_scaling(f)
         self.controller.frequency = f.value()
 
         self.target_frequency = f
-        self.current_frequency = self.target_frequency
+        self.current_value = self.target_value
 
     def move_rel(self, f: DataActuator) -> None:
         """ Move the actuator to the relative target actuator value defined by
@@ -251,11 +251,11 @@ class DAQ_Move_Lockin_DSP7265(DAQ_Move_base):
         ----------
         value: (float) value of the relative target frequency
         """
-        f = (self.check_bound(self.current_frequency + f)
-             - self.current_frequency)
-        self.target_frequency = f + self.current_frequency
+        f = (self.check_bound(self.current_value + f)
+             - self.current_value)
+        self.target_value = f + self.current_value
         f = self.set_position_relative_with_scaling(f)
-        self.move_abs(self.target_frequency)
+        self.move_abs(self.target_value)
 
     def move_home(self):
         """Call the reference method of the controller
