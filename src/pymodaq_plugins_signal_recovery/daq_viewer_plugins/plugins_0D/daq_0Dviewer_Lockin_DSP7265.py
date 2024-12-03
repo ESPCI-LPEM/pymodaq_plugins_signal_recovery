@@ -17,7 +17,6 @@ from pymodaq.control_modules.viewer_utility_classes import (
 )
 from pymodaq.utils.parameter import Parameter, utils
 from pymodaq.utils.data import DataFromPlugins, DataToExport
-from pymodaq.utils.daq_utils import ThreadCommand, getLineInfo
 
 from pyqtgraph.parametertree.Parameter import registerParameterType
 from pyqtgraph.parametertree.parameterTypes.basetypes import GroupParameter

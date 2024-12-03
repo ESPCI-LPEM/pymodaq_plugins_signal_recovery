@@ -12,7 +12,6 @@ from pymodaq.control_modules.move_utility_classes import (
     comon_parameters_fun,
     main
 )
-from pymodaq.utils.daq_utils import ThreadCommand, getLineInfo
 from pymodaq.utils.parameter import Parameter
 
 from pymeasure.adapters import VISAAdapter, PrologixAdapter
