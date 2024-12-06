@@ -10,13 +10,16 @@ logger = set_logger(get_module_name(__file__), add_to_console=False)
 class DSP7265ThreadSafe(DSP7265):
 
     def read(self, **kwargs):
+        value = None
         try:
             lock.acquire()
-            super().read(**kwargs)
+            value = super().read(**kwargs)
         except Exception as e:
             logger.debug(str(e))
         finally:
             lock.release()
+
+        return value
 
     def write(self, command, **kwargs):
         try:
