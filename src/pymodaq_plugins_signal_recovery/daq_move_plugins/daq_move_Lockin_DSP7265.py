@@ -18,7 +18,7 @@ from pymeasure.adapters import VISAAdapter, PrologixAdapter
 
 import pyvisa
 
-from hardware.dsp_7265_thread_safe import DSP7265ThreadSafe
+from pymodaq_plugins_signal_recovery.hardware.dsp_7265_thread_safe import DSP7265ThreadSafe
 
 
 def build_dict_from_float_list(

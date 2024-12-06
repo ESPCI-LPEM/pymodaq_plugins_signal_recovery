@@ -21,7 +21,7 @@ from pymodaq.utils.data import DataFromPlugins, DataToExport
 from pyqtgraph.parametertree.Parameter import registerParameterType
 from pyqtgraph.parametertree.parameterTypes.basetypes import GroupParameter
 
-from hardware.dsp_7265_thread_safe import DSP7265ThreadSafe
+from pymodaq_plugins_signal_recovery.hardware.dsp_7265_thread_safe import DSP7265ThreadSafe
 
 CHANNELS = ['x', 'y', 'mag', 'phase', 'adc1', 'adc2', 'adc3']
 rm = pyvisa.ResourceManager()
